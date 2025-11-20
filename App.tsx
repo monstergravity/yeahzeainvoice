@@ -33,7 +33,17 @@ const App: React.FC = () => {
   
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const [credits, setCredits] = useState(10);
+
+  // Initialize credits from localStorage, default to 10 if not found
+  const [credits, setCredits] = useState<number>(() => {
+    const savedCredits = localStorage.getItem('yeahzea_credits');
+    return savedCredits !== null ? parseInt(savedCredits, 10) : 10;
+  });
+
+  // Persist credits to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('yeahzea_credits', credits.toString());
+  }, [credits]);
 
   // Toggle Selection
   const toggleExpense = (id: string) => {
