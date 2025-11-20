@@ -1,0 +1,7 @@
+{
+  "name": "Yeahzea",
+  "description": "A SaaS Expense Intelligence Platform for processing non-English receipts using Gemini 2.5 Flash.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
