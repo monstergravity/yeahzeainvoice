@@ -34,15 +34,30 @@ const App: React.FC = () => {
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
-  // Initialize credits from localStorage, default to 10 if not found
+  // Initialize credits from localStorage safely
+  // Use a lazy initializer to read from storage BEFORE the first render
   const [credits, setCredits] = useState<number>(() => {
-    const savedCredits = localStorage.getItem('yeahzea_credits');
-    return savedCredits !== null ? parseInt(savedCredits, 10) : 10;
+    try {
+      if (typeof window !== 'undefined') {
+        const savedCredits = localStorage.getItem('yeahzea_credits_v2');
+        if (savedCredits !== null) {
+          const parsed = parseInt(savedCredits, 10);
+          return isNaN(parsed) ? 10 : parsed;
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to load credits from storage", error);
+    }
+    return 10; // Default starting credits
   });
 
   // Persist credits to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('yeahzea_credits', credits.toString());
+    try {
+      localStorage.setItem('yeahzea_credits_v2', credits.toString());
+    } catch (error) {
+      console.error("Failed to save credits to storage", error);
+    }
   }, [credits]);
 
   // Toggle Selection
