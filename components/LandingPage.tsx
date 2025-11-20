@@ -131,7 +131,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         </div>
       </section>
 
-      {/* Features 2 */}
+      {/* Features 2: Auto-generate */}
       <section className="py-24 px-6 md:px-8 bg-white">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
           <div className="order-2 md:order-1 relative">
@@ -168,30 +168,90 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         </div>
       </section>
 
-      {/* New: Advanced Features (AI Audit, Trips, Smart Features) */}
-      <section id="features" className="py-24 px-6 md:px-8 bg-gray-50">
+      {/* NEW: AI Analyst Spotlight */}
+      <section className="py-24 px-6 md:px-8 bg-gray-50">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 bg-red-50 text-red-600 px-3 py-1 rounded-full text-sm font-medium border border-red-100 mb-2">
+                <ShieldAlert size={16} />
+                <span>Smart Audit Engine</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">Catch compliance issues instantly.</h2>
+            <p className="text-lg text-gray-500 leading-relaxed">
+              The AI Analyst scans every receipt for personal items, alcohol, and tobacco. It translates foreign text and ensures your spending policy is followed 100%.
+            </p>
+             <button onClick={onEnterApp} className="text-brand-green font-semibold hover:text-green-700 flex items-center gap-2 mt-2 group">
+                See AI in action <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+          
+          <div className="relative">
+             <div className="absolute -inset-4 bg-gradient-to-r from-purple-100 to-red-100 rounded-full blur-3xl opacity-30"></div>
+             <div className="relative bg-white rounded-3xl shadow-xl p-8 border border-gray-100 aspect-square flex items-center justify-center transform rotate-3 hover:rotate-0 transition-transform duration-500">
+                {/* Mock UI for Audit */}
+                <div className="w-full max-w-xs bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                    <div className="bg-gray-900 p-4 flex items-center justify-between text-white">
+                        <div className="font-bold flex items-center gap-2">
+                             <BrainCircuit size={18} className="text-brand-green" />
+                             AI Analyst
+                        </div>
+                        <div className="text-xs bg-white/20 px-2 py-0.5 rounded">Active</div>
+                    </div>
+                    <div className="p-4 space-y-4">
+                        {/* Item 1: Warning */}
+                        <div className="flex gap-3 items-start p-3 bg-red-50 rounded-lg border border-red-100">
+                            <div className="mt-0.5 text-red-500"><ShieldAlert size={16} /></div>
+                            <div className="flex-1">
+                                <div className="flex justify-between mb-1">
+                                    <span className="text-sm font-bold text-gray-800">Izakaya Tokyo</span>
+                                    <span className="text-sm font-bold text-gray-800">$120</span>
+                                </div>
+                                <p className="text-xs text-red-600 font-medium">Alcohol detected (Sake)</p>
+                            </div>
+                        </div>
+                        
+                        {/* Item 2: Valid */}
+                        <div className="flex gap-3 items-start p-3 bg-green-50 rounded-lg border border-green-100 opacity-60">
+                            <div className="mt-0.5 text-green-500"><Check size={16} /></div>
+                            <div className="flex-1">
+                                <div className="flex justify-between mb-1">
+                                    <span className="text-sm font-bold text-gray-800">Taxi Service</span>
+                                    <span className="text-sm font-bold text-gray-800">$45</span>
+                                </div>
+                                <p className="text-xs text-green-600">Valid business expense</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Advanced Features Grid (Updated bg to white to alternate) */}
+      <section id="features" className="py-24 px-6 md:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
             <div className="text-center mb-20">
                 <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">More than just a scanner.</h2>
                 <p className="text-xl text-gray-500 max-w-2xl mx-auto">
-                    Advanced intelligence features designed for modern business needs, made reimbursements easier.
+                    Advanced intelligence features designed for modern business travel.
                 </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {/* AI Audit */}
-                <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:border-brand-green/50 hover:shadow-lg transition-all duration-300 group">
+                <div className="bg-gray-50 p-8 rounded-2xl border border-gray-200 hover:border-brand-green/50 hover:shadow-lg transition-all duration-300 group">
                     <div className="w-12 h-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                         <ShieldAlert size={24} />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">AI Compliance Auditor</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-3">Compliance</h3>
                     <p className="text-gray-500 text-sm leading-relaxed">
-                        Automatically identifies personal expenses like alcohol and tobacco. Translates non-English receipts and flags compliance issues before submission.
+                        Deep learning analysis identifies policy violations, personal items, and potential duplicate submissions.
                     </p>
                 </div>
 
                 {/* Trip Management */}
-                <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:border-brand-green/50 hover:shadow-lg transition-all duration-300 group">
+                <div className="bg-gray-50 p-8 rounded-2xl border border-gray-200 hover:border-brand-green/50 hover:shadow-lg transition-all duration-300 group">
                     <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                         <Map size={24} />
                     </div>
@@ -202,7 +262,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                 </div>
 
                 {/* Inbox Zero */}
-                <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:border-brand-green/50 hover:shadow-lg transition-all duration-300 group">
+                <div className="bg-gray-50 p-8 rounded-2xl border border-gray-200 hover:border-brand-green/50 hover:shadow-lg transition-all duration-300 group">
                     <div className="w-12 h-12 bg-purple-50 text-purple-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                         <Mail size={24} />
                     </div>
@@ -213,7 +273,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                 </div>
 
                  {/* Smart Features */}
-                <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:border-brand-green/50 hover:shadow-lg transition-all duration-300 group">
+                <div className="bg-gray-50 p-8 rounded-2xl border border-gray-200 hover:border-brand-green/50 hover:shadow-lg transition-all duration-300 group">
                     <div className="w-12 h-12 bg-yellow-50 text-yellow-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                         <BrainCircuit size={24} />
                     </div>
