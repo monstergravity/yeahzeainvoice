@@ -68,10 +68,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       <section className="pt-40 pb-20 px-6 md:px-8">
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-5xl md:text-7xl font-extrabold mb-6 text-gray-900 tracking-tight leading-tight">
-            Travel reimbursement <br className="hidden md:block" /> made simple.
+            Travel Expense & Reimbursement <br className="hidden md:block" /> Automation for Small Business
           </h1>
-          <p className="text-xl md:text-2xl text-gray-500 mb-12 max-w-2xl mx-auto leading-relaxed">
-            Snap a photo, auto-process instantly. The smartest way to manage expenses.
+          <p className="text-xl md:text-2xl text-gray-500 mb-6 max-w-3xl mx-auto leading-relaxed">
+            Automate travel expense reimbursement at low cost. AI translates foreign language invoices from Asia business trips, identifies expense purpose for finance teams, and audits personal expenses to reduce costs.
+          </p>
+          <p className="text-lg md:text-xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
+            Travel Expense Management • Reimbursement Automation • Foreign Invoice Translation • AI Compliance Audit • Automated Travel Expense Reports
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button 
@@ -94,18 +97,30 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       <section id="product" className="py-24 px-6 md:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
           <div className="space-y-6">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">Upload receipts effortlessly.</h2>
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">Automate Travel Expense Reimbursement for Asia Business Trips</h2>
             <p className="text-lg text-gray-500 leading-relaxed">
-              Snap a photo or upload a file. Our advanced AI automatically identifies merchant, date, amount, and currency details. No manual entry required.
+              Your employees return from Asia business trips with travel expense receipts in Japanese, Chinese, Korean, or Thai. Finance teams can't understand what was purchased or the expense purpose, causing reimbursement delays and errors. Yeahzea's AI translates foreign invoices, identifies purchase items, and clarifies expense purpose - enabling faster travel expense reimbursement processing.
             </p>
             <div className="flex flex-col gap-3 pt-4">
                 <div className="flex items-center gap-3 text-gray-700">
                     <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600"><Check size={14} /></div>
-                    <span>Supports JPG, PNG, PDF</span>
+                    <span><strong>Travel expense automation:</strong> Automates entire travel expense reimbursement workflow</span>
                 </div>
                 <div className="flex items-center gap-3 text-gray-700">
                     <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600"><Check size={14} /></div>
-                    <span>Auto-currency conversion</span>
+                    <span><strong>Foreign language invoice translation:</strong> Reads travel expense invoices in Japanese, Chinese, Korean, Thai, and more</span>
+                </div>
+                <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600"><Check size={14} /></div>
+                    <span><strong>Reimbursement expense identification:</strong> Automatically identifies what was purchased and expense purpose for reimbursement</span>
+                </div>
+                <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600"><Check size={14} /></div>
+                    <span><strong>Faster reimbursement processing:</strong> Enables proper accounting and faster travel expense reimbursement</span>
+                </div>
+                <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600"><Check size={14} /></div>
+                    <span>Multi-currency travel expense support with automatic conversion</span>
                 </div>
             </div>
           </div>
@@ -174,14 +189,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 bg-red-50 text-red-600 px-3 py-1 rounded-full text-sm font-medium border border-red-100 mb-2">
                 <ShieldAlert size={16} />
-                <span>Smart Audit Engine</span>
+                <span>AI Expense Compliance Audit</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">Catch compliance issues instantly.</h2>
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">Reduce Travel Expense Costs with AI Reimbursement Audit</h2>
             <p className="text-lg text-gray-500 leading-relaxed">
-              The AI Analyst scans every receipt for personal items, alcohol, and tobacco. It translates foreign text and ensures your spending policy is followed 100%.
+              Yeahzea's AI Analyst automatically scans every travel expense receipt for personal expenses like alcohol and tobacco. When detected, it flags them as non-reimbursable and warns employees before reimbursement processing. This helps small businesses reduce travel expense costs by preventing reimbursement of personal expenses and ensures compliance with company travel expense policies.
             </p>
+            <div className="flex flex-col gap-3 pt-2">
+                <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-red-600"><ShieldAlert size={12} /></div>
+                    <span><strong>Personal expense detection:</strong> Automatically identifies alcohol, tobacco, and other non-reimbursable items</span>
+                </div>
+                <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center text-green-600"><Check size={12} /></div>
+                    <span><strong>Cost reduction:</strong> Prevents erroneous reimbursements and reduces business expenses</span>
+                </div>
+                <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600"><ShieldAlert size={12} /></div>
+                    <span><strong>Compliance assurance:</strong> Ensures company expense policies are followed automatically</span>
+                </div>
+            </div>
              <button onClick={onEnterApp} className="text-brand-green font-semibold hover:text-green-700 flex items-center gap-2 mt-2 group">
-                See AI in action <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                See AI Audit in action <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
           
@@ -228,58 +257,96 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         </div>
       </section>
 
+      {/* Pain Points Section - NEW */}
+      <section className="py-24 px-6 md:px-8 bg-white border-t border-gray-100">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">Solving Small Business Expense Management Pain Points</h2>
+            <p className="text-xl text-gray-500 max-w-3xl mx-auto leading-relaxed">
+              Small businesses struggle with manual expense processing and foreign invoices from Asia trips. Finance teams can't process what they don't understand. Yeahzea automates expense management at low cost, translating foreign invoices and auditing compliance.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8 mb-12">
+            <div className="bg-red-50 border border-red-100 rounded-2xl p-8">
+              <div className="text-4xl mb-4">🌏</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Travel Expense Reimbursement Delays from Foreign Invoices</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Employees return from Asia business trips with travel expense receipts in Japanese, Chinese, Korean, or Thai. Finance teams can't process reimbursement expenses because they don't know what was purchased or the expense purpose. Yeahzea translates foreign invoices and identifies expense purpose automatically, enabling faster reimbursement.
+              </p>
+            </div>
+            
+            <div className="bg-orange-50 border border-orange-100 rounded-2xl p-8">
+              <div className="text-4xl mb-4">⏱️</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Manual Travel Expense Processing Delays Reimbursement</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Small business finance teams waste hours manually processing travel expenses and reimbursement expense data, especially for foreign invoices from Asia trips. This delays reimbursements and creates bottlenecks. Yeahzea automates travel expense and reimbursement management at low cost, reducing processing time by 80% and enabling faster reimbursements.
+              </p>
+            </div>
+            
+            <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-8">
+              <div className="text-4xl mb-4">💰</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Personal Expenses Get Reimbursed</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Without proper expense audit, personal expenses like alcohol and tobacco get reimbursed, increasing business costs. Yeahzea's AI Analyst automatically detects non-reimbursable items, flags them, and warns employees - helping small businesses reduce expenses and ensure compliance.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Advanced Features Grid (Updated bg to white to alternate) */}
-      <section id="features" className="py-24 px-6 md:px-8 bg-white">
+      <section id="features" className="py-24 px-6 md:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
             <div className="text-center mb-20">
-                <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">More than just a scanner.</h2>
+                <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">More Than Just a Receipt Scanner</h2>
                 <p className="text-xl text-gray-500 max-w-2xl mx-auto">
-                    Advanced intelligence features designed for modern business travel.
+                    Advanced AI features designed for small business expense management and international business travel.
                 </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {/* AI Audit */}
-                <div className="bg-gray-50 p-8 rounded-2xl border border-gray-200 hover:border-brand-green/50 hover:shadow-lg transition-all duration-300 group">
+                <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:border-brand-green/50 hover:shadow-lg transition-all duration-300 group">
                     <div className="w-12 h-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                         <ShieldAlert size={24} />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">Compliance</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-3">AI Travel Expense Audit & Reimbursement Compliance</h3>
                     <p className="text-gray-500 text-sm leading-relaxed">
-                        Deep learning analysis identifies policy violations, personal items, and potential duplicate submissions.
+                        Automatically audits travel expenses and detects personal expenses like alcohol and tobacco on receipts. Flags non-reimbursable items and warns employees before reimbursement processing, helping small businesses reduce travel expense costs and ensure reimbursement policy compliance.
                     </p>
                 </div>
 
-                {/* Trip Management */}
-                <div className="bg-gray-50 p-8 rounded-2xl border border-gray-200 hover:border-brand-green/50 hover:shadow-lg transition-all duration-300 group">
+                {/* Foreign Invoice Translation */}
+                <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:border-brand-green/50 hover:shadow-lg transition-all duration-300 group">
                     <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                        <Map size={24} />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">Trip Management</h3>
-                    <p className="text-gray-500 text-sm leading-relaxed">
-                        Create business trips and allocate expenses to specific travel events. Get a clear financial view of every journey you take.
-                    </p>
-                </div>
-
-                {/* Inbox Zero */}
-                <div className="bg-gray-50 p-8 rounded-2xl border border-gray-200 hover:border-brand-green/50 hover:shadow-lg transition-all duration-300 group">
-                    <div className="w-12 h-12 bg-purple-50 text-purple-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                        <Mail size={24} />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">Inbox Zero</h3>
-                    <p className="text-gray-500 text-sm leading-relaxed">
-                        Hate downloading files? Just forward your email receipts to your dedicated Yeahzea inbox and they appear in your dashboard instantly.
-                    </p>
-                </div>
-
-                 {/* Smart Features */}
-                <div className="bg-gray-50 p-8 rounded-2xl border border-gray-200 hover:border-brand-green/50 hover:shadow-lg transition-all duration-300 group">
-                    <div className="w-12 h-12 bg-yellow-50 text-yellow-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                         <BrainCircuit size={24} />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">Smart Learning</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-3">Travel Expense Invoice Translation</h3>
                     <p className="text-gray-500 text-sm leading-relaxed">
-                        The system learns your habits. Categorize "Starbucks" as "Meals" once, and we'll remember it for next time.
+                        Translates travel expense invoices from Asia business trips (Japanese, Chinese, Korean, Thai). Identifies purchase items and expense purpose for reimbursement processing, enabling finance teams to process travel expense receipts that were previously unreadable.
+                    </p>
+                </div>
+
+                {/* Expense Purpose Identification */}
+                <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:border-brand-green/50 hover:shadow-lg transition-all duration-300 group">
+                    <div className="w-12 h-12 bg-purple-50 text-purple-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <FileSpreadsheet size={24} />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-3">Reimbursement Expense Purpose Identification</h3>
+                    <p className="text-gray-500 text-sm leading-relaxed">
+                        Automatically identifies what was purchased and why from foreign travel expense invoices. Solves the problem of finance teams not understanding reimbursement expense purpose, enabling proper accounting and faster travel expense reimbursement processing.
+                    </p>
+                </div>
+
+                 {/* Low-Cost Automation */}
+                <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:border-brand-green/50 hover:shadow-lg transition-all duration-300 group">
+                    <div className="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <Map size={24} />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-3">Low-Cost Travel Expense & Reimbursement Automation</h3>
+                    <p className="text-gray-500 text-sm leading-relaxed">
+                        Affordable travel expense and reimbursement automation solution for small businesses. Reduces finance team workload by 80%, eliminates manual travel expense data entry, and streamlines reimbursement workflows - all at a fraction of enterprise expense management solution costs.
                     </p>
                 </div>
             </div>
@@ -445,9 +512,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-12">
-            <StatCard number="99.9%" title="Scanning Accuracy" desc="Advanced OCR ensures precise data extraction." />
+            <StatCard number="99%" title="Scanning Accuracy" desc="Advanced OCR ensures precise data extraction." />
             <StatCard number="<3s" title="Generation Speed" desc="Intelligent algorithms process reports in seconds." />
-            <StatCard number="100%" title="Data Security" desc="Bank-grade encryption keeps your data private." />
+            <StatCard number="99%" title="Data Security" desc="Bank-grade encryption keeps your data private." />
           </div>
         </div>
       </section>
@@ -468,7 +535,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                 Yes! Once your receipts are uploaded, Yeahzea automatically organizes them into a report. You can group them by trip and export a professional PDF in one click.
             </AccordionItem>
             <AccordionItem question="Who is Yeahzea for?">
-                Yeahzea is perfect for anyone who needs to track expenses: business travelers, freelancers, sales teams, and small business finance departments.
+                Yeahzea is perfect for small businesses that need low-cost travel expense and reimbursement automation, especially those with employees traveling to Asia for business. Ideal for small business finance departments struggling with foreign language travel expense invoices, reimbursement expense purpose identification, and manual travel expense processing.
+            </AccordionItem>
+            <AccordionItem question="How does Yeahzea automate travel expense reimbursement?">
+                Yeahzea automates the entire travel expense reimbursement process. Employees upload receipts from business trips, AI translates foreign language invoices, identifies expense purpose for reimbursement, and generates automated travel expense reports. Finance teams can process reimbursements faster with proper accounting details.
+            </AccordionItem>
+            <AccordionItem question="Can Yeahzea handle travel expenses from Asia business trips?">
+                Yes! Yeahzea specializes in processing travel expenses from Asia business trips. It translates foreign language travel expense invoices (Japanese, Chinese, Korean, Thai), identifies what was purchased and the expense purpose for reimbursement, converts currencies automatically, and creates compliant travel expense reports for faster reimbursement processing.
+            </AccordionItem>
+            <AccordionItem question="How does Yeahzea help with reimbursement expense management?">
+                Yeahzea automates reimbursement expense management for small businesses at low cost. It eliminates manual travel expense data entry, translates foreign invoices, identifies reimbursement expense purpose, audits personal expenses, and generates automated reports - reducing reimbursement processing time by 80% and enabling faster reimbursements.
+            </AccordionItem>
+            <AccordionItem question="Does Yeahzea audit travel expenses for reimbursement compliance?">
+                Yes. Yeahzea's AI Analyst automatically audits all travel expenses for reimbursement, detecting personal expenses like alcohol and tobacco. It flags non-reimbursable items, warns employees before reimbursement processing, and ensures compliance with company travel expense policies - helping small businesses reduce costs and prevent erroneous reimbursements.
+            </AccordionItem>
+            <AccordionItem question="Is Yeahzea affordable for small business travel expense management?">
+                Yes! Yeahzea is designed as a low-cost travel expense and reimbursement automation solution for small businesses. It eliminates manual travel expense invoice processing, reduces finance team workload by 80%, and helps prevent erroneous reimbursements - all at an affordable price point compared to enterprise travel expense management solutions.
             </AccordionItem>
             <AccordionItem question="Is my data safe?">
                 Absolutely. We use enterprise-grade encryption for all data storage and transmission. We strictly adhere to privacy regulations and never share your data with third parties.
