@@ -13,6 +13,7 @@ import { Expense, Report, Trip } from './types';
 import { generateExpenseReportPDF } from './services/pdfService';
 import { generateExpenseReportExcel } from './services/excelService';
 import { authService, expenseService, tripService, creditService } from './services/supabaseService';
+import { checkExpenseDuplicate } from './services/duplicateService';
 
 // Start with empty state as requested
 const INITIAL_EXPENSES: Expense[] = [];
@@ -419,6 +420,21 @@ const App: React.FC = () => {
   const issuesCount = filteredExpenses.filter(e => e.status === 'warning').length;
   const selectedCount = expenses.filter(e => e.selected).length;
 
+  // Check for duplicate expenses
+  const duplicateExpenseIds = useMemo(() => {
+    const duplicateIds = new Set<string>();
+    for (let i = 0; i < expenses.length; i++) {
+      for (let j = i + 1; j < expenses.length; j++) {
+        const match = checkExpenseDuplicate(expenses[i], expenses[j]);
+        if (match.isDuplicate) {
+          duplicateIds.add(expenses[i].id);
+          duplicateIds.add(expenses[j].id);
+        }
+      }
+    }
+    return duplicateIds;
+  }, [expenses]);
+
   const editingExpense = useMemo(() => 
     expenses.find(e => e.id === editingExpenseId) || null, 
     [expenses, editingExpenseId]
@@ -664,6 +680,7 @@ const App: React.FC = () => {
                                     onToggle={toggleExpense}
                                     onClick={handleExpenseClick}
                                     onDelete={handleDeleteSingle}
+                                    isDuplicate={duplicateExpenseIds.has(expense.id)}
                                 />
                             ))}
                         </div>
@@ -732,6 +749,7 @@ const App: React.FC = () => {
                 setIsUploadModalOpen(false);
                 setIsBuyCreditsOpen(true);
             }}
+            existingExpenses={expenses}
         />
 
         <ExpenseDetailPanel 

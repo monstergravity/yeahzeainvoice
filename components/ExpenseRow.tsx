@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, AlertCircle, Trash2, User, FileText } from 'lucide-react';
+import { ChevronRight, AlertCircle, Trash2, User, FileText, Copy } from 'lucide-react';
 import { Expense } from '../types';
 
 interface ExpenseRowProps {
@@ -7,9 +7,10 @@ interface ExpenseRowProps {
   onToggle: (id: string) => void;
   onClick: (expense: Expense) => void;
   onDelete: (id: string) => void;
+  isDuplicate?: boolean; // Mark if this expense is a duplicate
 }
 
-const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense, onToggle, onClick, onDelete }) => {
+const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense, onToggle, onClick, onDelete, isDuplicate }) => {
   const isPersonal = expense.isPersonalExpense;
   const isPdf = expense.fileType === 'pdf';
 
@@ -63,6 +64,12 @@ const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense, onToggle, onClick, onD
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 border border-gray-200">
                     <User size={10} className="mr-1" />
                     Personal
+                </span>
+             )}
+             {isDuplicate && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-700 border border-yellow-300">
+                    <Copy size={10} className="mr-1" />
+                    Duplicate
                 </span>
              )}
              <span>{expense.category || ''}</span>
