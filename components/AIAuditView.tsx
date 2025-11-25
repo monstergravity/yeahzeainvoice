@@ -7,7 +7,7 @@ interface AIAuditViewProps {
   expenses: Expense[];
   onUpdateExpense: (expense: Expense) => void;
   credits: number;
-  onConsumeCredit: (amount: number) => void;
+  onConsumeCredit: (amount: number, type?: 'scan' | 'audit') => void;
 }
 
 const AIAuditView: React.FC<AIAuditViewProps> = ({ expenses, onUpdateExpense, credits, onConsumeCredit }) => {
@@ -21,57 +21,96 @@ const AIAuditView: React.FC<AIAuditViewProps> = ({ expenses, onUpdateExpense, cr
   const flaggedExpenses = expenses.filter(e => e.isPersonalExpense);
 
   const runAudit = async () => {
-    if (unauditedExpenses.length === 0) return;
+    // Capture the list of unaudited expenses at the start to avoid issues with re-renders
+    const expensesToAudit = expenses.filter(e => e.receiptUrl && !e.aiAuditRan);
     
-    const totalCost = unauditedExpenses.length * AUDIT_COST;
+    if (expensesToAudit.length === 0) {
+      alert('No unaudited expenses found. All expenses have already been audited.');
+      return;
+    }
+    
+    const totalCost = expensesToAudit.length * AUDIT_COST;
 
     if (totalCost > credits) {
-        alert(`Not enough credits. You have ${credits} credits, but need ${totalCost} credits to audit ${unauditedExpenses.length} receipts (Cost: ${AUDIT_COST} credits per receipt).`);
+        alert(`Not enough credits. You have ${credits} credits, but need ${totalCost} credits to audit ${expensesToAudit.length} receipts (Cost: ${AUDIT_COST} credits per receipt).`);
         return;
     }
 
     setIsAuditing(true);
-    setAuditProgress({ current: 0, total: unauditedExpenses.length });
+    setAuditProgress({ current: 0, total: expensesToAudit.length });
 
     let processedCount = 0;
+    let failedCount = 0;
 
-    for (let i = 0; i < unauditedExpenses.length; i++) {
-      const expense = unauditedExpenses[i];
-      setAuditProgress({ current: i + 1, total: unauditedExpenses.length });
+    console.log(`Starting audit for ${expensesToAudit.length} expenses`);
+
+    for (let i = 0; i < expensesToAudit.length; i++) {
+      const expense = expensesToAudit[i];
+      setAuditProgress({ current: i + 1, total: expensesToAudit.length });
+
+      console.log(`Auditing expense ${i + 1}/${expensesToAudit.length}: ${expense.merchant}`);
 
       try {
         // Fetch blob from internal URL for Gemini
-        const response = await fetch(expense.receiptUrl!);
-        const blob = await response.blob();
-        const base64 = await new Promise<string>((resolve) => {
+        let blob: Blob;
+        try {
+          const response = await fetch(expense.receiptUrl!);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch receipt: ${response.status} ${response.statusText}`);
+          }
+          blob = await response.blob();
+        } catch (fetchError) {
+          console.error(`Failed to fetch receipt for ${expense.id}:`, fetchError);
+          failedCount++;
+          continue;
+        }
+
+        const base64 = await new Promise<string>((resolve, reject) => {
              const reader = new FileReader();
              reader.onloadend = () => {
                  const res = reader.result as string;
                  resolve(res.includes(',') ? res.split(',')[1] : res);
              };
+             reader.onerror = reject;
              reader.readAsDataURL(blob);
         });
         
         const mimeType = blob.type || (expense.fileType === 'pdf' ? 'application/pdf' : 'image/png');
 
+        console.log(`Calling auditReceipt for ${expense.id}`);
         const auditResult = await auditReceipt(base64, expense, mimeType);
+        console.log(`Audit result for ${expense.id}:`, auditResult);
         
-        onUpdateExpense({
+        const updatedExpense: Expense = {
             ...expense,
             ...auditResult,
             warningMessage: auditResult.isPersonalExpense ? auditResult.auditWarning : expense.warningMessage,
             status: auditResult.isPersonalExpense ? 'warning' : expense.status
-        });
+        };
 
+        onUpdateExpense(updatedExpense);
         processedCount++;
+        console.log(`Successfully audited expense ${i + 1}/${expensesToAudit.length}`);
       } catch (e) {
-          console.error("Audit failed for", expense.id, e);
+          console.error(`Audit failed for expense ${expense.id} (${expense.merchant}):`, e);
+          failedCount++;
       }
     }
 
-    onConsumeCredit(processedCount * AUDIT_COST);
+    console.log(`Audit completed: ${processedCount} succeeded, ${failedCount} failed out of ${expensesToAudit.length} total`);
+
+    if (processedCount > 0) {
+      onConsumeCredit(processedCount, 'audit');
+    }
+
     setIsAuditing(false);
     setAuditProgress(null);
+
+    if (failedCount > 0) {
+      alert(`Audit completed with ${failedCount} failure(s). ${processedCount} expense(s) were successfully audited.`);
+    } else if (processedCount > 0) {
+      alert(`Successfully audited ${processedCount} expense(s)!`);
+    }
   };
 
   return (

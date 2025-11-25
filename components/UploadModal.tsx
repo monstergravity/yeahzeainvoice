@@ -80,7 +80,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddExpense
     }
 
     if (successfulUploads > 0) {
-       onConsumeCredit(successfulUploads);
+       onConsumeCredit(successfulUploads, 'scan');
     }
 
     setIsProcessing(false);

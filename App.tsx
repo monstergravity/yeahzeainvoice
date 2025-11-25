@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronLeft, Search, MoreHorizontal, Send, Smile, Paperclip, Loader2, Trash2, FolderInput, FileSpreadsheet } from 'lucide-react';
+import { ChevronLeft, Search, MoreHorizontal, Send, Smile, Paperclip, Loader2, Trash2, FolderInput, FileSpreadsheet, LogOut } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ExpenseRow from './components/ExpenseRow';
 import UploadModal from './components/UploadModal';
@@ -7,10 +7,12 @@ import ExpenseDetailPanel from './components/ExpenseDetailPanel';
 import BuyCreditsModal from './components/BuyCreditsModal';
 import CreateTripModal from './components/CreateTripModal';
 import AIAuditView from './components/AIAuditView';
+import AuthModal from './components/AuthModal';
 import { LandingPage } from './components/LandingPage';
 import { Expense, Report, Trip } from './types';
 import { generateExpenseReportPDF } from './services/pdfService';
 import { generateExpenseReportExcel } from './services/excelService';
+import { authService, expenseService, tripService, creditService } from './services/supabaseService';
 
 // Start with empty state as requested
 const INITIAL_EXPENSES: Expense[] = [];
@@ -18,6 +20,11 @@ const INITIAL_EXPENSES: Expense[] = [];
 const App: React.FC = () => {
   // View State: 'landing' (Marketing Page) or 'dashboard' (Main App)
   const [isLandingPage, setIsLandingPage] = useState(true);
+
+  // Authentication State
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -34,31 +41,89 @@ const App: React.FC = () => {
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
-  // Initialize credits from localStorage safely
-  // Use a lazy initializer to read from storage BEFORE the first render
-  const [credits, setCredits] = useState<number>(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        const savedCredits = localStorage.getItem('yeahzea_credits_v2');
-        if (savedCredits !== null) {
-          const parsed = parseInt(savedCredits, 10);
-          return isNaN(parsed) ? 10 : parsed;
+  // Credits from Supabase
+  const [credits, setCredits] = useState<number>(0);
+
+  // Check authentication status on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { user, error } = await authService.getCurrentUser();
+        if (user && !error) {
+          setUserId(user.id);
+          await loadUserData(user.id);
+        } else {
+          setIsAuthModalOpen(true);
         }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        setIsAuthModalOpen(true);
+      } finally {
+        setIsLoadingAuth(false);
+      }
+    };
+
+    checkAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = authService.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUserId(session.user.id);
+        await loadUserData(session.user.id);
+        setIsAuthModalOpen(false);
+      } else if (event === 'SIGNED_OUT') {
+        setUserId(null);
+        setExpenses([]);
+        setTrips([]);
+        setCredits(0);
+        setIsAuthModalOpen(true);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Load user data from Supabase
+  const loadUserData = async (uid: string) => {
+    try {
+      // Load expenses
+      const { data: expensesData, error: expensesError } = await expenseService.getExpenses(uid);
+      if (!expensesError && expensesData) {
+        setExpenses(expensesData);
+      }
+
+      // Load trips
+      const { data: tripsData, error: tripsError } = await tripService.getTrips(uid);
+      if (!tripsError && tripsData) {
+        setTrips(tripsData);
+      }
+
+      // Load credits
+      const { data: creditsData, error: creditsError } = await creditService.getCredits(uid);
+      if (!creditsError && creditsData !== undefined) {
+        setCredits(creditsData);
       }
     } catch (error) {
-      console.warn("Failed to load credits from storage", error);
+      console.error('Failed to load user data:', error);
     }
-    return 10; // Default starting credits
-  });
+  };
 
-  // Persist credits to localStorage whenever they change
-  useEffect(() => {
-    try {
-      localStorage.setItem('yeahzea_credits_v2', credits.toString());
-    } catch (error) {
-      console.error("Failed to save credits to storage", error);
-    }
-  }, [credits]);
+  const handleAuthSuccess = async (uid: string) => {
+    setUserId(uid);
+    await loadUserData(uid);
+    setIsAuthModalOpen(false);
+  };
+
+  const handleSignOut = async () => {
+    await authService.signOut();
+    setUserId(null);
+    setExpenses([]);
+    setTrips([]);
+    setCredits(0);
+    setIsAuthModalOpen(true);
+  };
 
   // Toggle Selection
   const toggleExpense = (id: string) => {
@@ -81,15 +146,37 @@ const App: React.FC = () => {
     setEditingExpenseId(expense.id);
   };
 
-  const handleExpenseUpdate = (updatedExpense: Expense) => {
+  const handleExpenseUpdate = async (updatedExpense: Expense) => {
+    if (!userId) return;
+
+    // Update local state immediately
     setExpenses(prev => prev.map(e => e.id === updatedExpense.id ? updatedExpense : e));
+
+    // Update in Supabase
+    try {
+      await expenseService.updateExpense(updatedExpense, userId);
+    } catch (error) {
+      console.error('Failed to update expense in Supabase:', error);
+    }
   };
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = async () => {
+    if (!userId) return;
+
     const selectedCount = expenses.filter(e => e.selected).length;
     if (selectedCount === 0) return;
     
     if (confirm(`Are you sure you want to delete ${selectedCount} invoice${selectedCount > 1 ? 's' : ''}?`)) {
+        const selectedExpenses = expenses.filter(e => e.selected);
+        
+        // Delete from Supabase
+        try {
+          await Promise.all(selectedExpenses.map(e => expenseService.deleteExpense(e.id, userId!)));
+        } catch (error) {
+          console.error('Failed to delete expenses from Supabase:', error);
+        }
+
+        // Update local state
         setExpenses(prev => prev.filter(e => !e.selected));
         if (editingExpenseId && expenses.find(e => e.id === editingExpenseId)?.selected) {
             setEditingExpenseId(null);
@@ -97,8 +184,18 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeleteSingle = (id: string) => {
+  const handleDeleteSingle = async (id: string) => {
+      if (!userId) return;
+
       if (confirm('Are you sure you want to delete this invoice?')) {
+          // Delete from Supabase
+          try {
+            await expenseService.deleteExpense(id, userId);
+          } catch (error) {
+            console.error('Failed to delete expense from Supabase:', error);
+          }
+
+          // Update local state
           setExpenses(prev => prev.filter(e => e.id !== id));
           if (editingExpenseId === id) {
             setEditingExpenseId(null);
@@ -108,22 +205,75 @@ const App: React.FC = () => {
 
   // --- Trip Logic ---
   
-  const handleCreateTrip = (name: string) => {
+  const handleCreateTrip = async (name: string) => {
+    if (!userId) {
+      console.error('Cannot create trip: userId is null');
+      alert('Please sign in first');
+      return;
+    }
+
     const newTrip: Trip = {
         id: Date.now().toString(),
         name,
         createdAt: new Date().toISOString()
     };
+    
+    console.log('Creating trip:', { trip: newTrip, userId });
+    
+    // Update local state immediately
     setTrips(prev => [...prev, newTrip]);
     setSelectedTripId(newTrip.id);
     setCurrentView('expenses'); // Switch back to expense view on create
+
+    // Save to Supabase
+    try {
+      const { data, error } = await tripService.createTrip(newTrip, userId);
+      if (error) {
+        console.error('Failed to save trip to Supabase:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        // 如果保存失败，从本地状态中移除
+        setTrips(prev => prev.filter(t => t.id !== newTrip.id));
+        setSelectedTripId(null);
+        alert(`Failed to create trip: ${error.message || JSON.stringify(error)}`);
+        return;
+      }
+      console.log('Trip saved successfully:', data);
+    } catch (error: any) {
+      console.error('Failed to save trip to Supabase:', error);
+      console.error('Exception details:', error);
+      // 如果保存失败，从本地状态中移除
+      setTrips(prev => prev.filter(t => t.id !== newTrip.id));
+      setSelectedTripId(null);
+        alert(`Failed to create trip: ${error?.message || 'Unknown error'}`);
+    }
   };
 
-  const handleAssignToTrip = (tripId: string) => {
-     setExpenses(prev => prev.map(e => e.selected ? { ...e, tripId, selected: false } : e));
-     if (confirm(`Moved items to trip. View trip now?`)) {
-         setSelectedTripId(tripId);
-     }
+  const handleAssignToTrip = async (tripId: string) => {
+    if (!userId) return;
+
+    const selectedExpenses = expenses.filter(e => e.selected);
+    if (selectedExpenses.length === 0) {
+      alert('Please select at least one expense to move.');
+      return;
+    }
+
+    // Update local state
+    setExpenses(prev => prev.map(e => {
+      if (e.selected) {
+        const updated = { ...e, tripId, selected: false };
+        // Update in Supabase
+        expenseService.updateExpense(updated, userId).catch(err => {
+          console.error('Failed to update expense trip:', err);
+        });
+        return updated;
+      }
+      return e;
+    }));
+
+    // Show success message and ask if user wants to view the trip
+    if (confirm(`${selectedExpenses.length} expense(s) moved to trip. View trip now?`)) {
+      setSelectedTripId(tripId);
+    }
   };
 
   const filteredExpenses = useMemo(() => {
@@ -147,15 +297,76 @@ const App: React.FC = () => {
     }, 0);
   }, [filteredExpenses]);
 
-  const addExpense = (newExpense: Expense) => {
+  const addExpense = async (newExpense: Expense) => {
+    if (!userId) {
+      console.error('Cannot add expense: userId is null');
+      alert('Please sign in first');
+      return;
+    }
+
     if (selectedTripId) {
         newExpense.tripId = selectedTripId;
+        console.log('Adding expense to trip:', selectedTripId);
     }
+    
+    console.log('Adding expense:', { 
+      expense: newExpense, 
+      userId, 
+      selectedTripId,
+      tripId: newExpense.tripId 
+    });
+    
+    // Save to local state immediately for UI responsiveness
     setExpenses(prev => [newExpense, ...prev]);
+
+    // Save to Supabase
+    try {
+      // Convert receiptUrl (blob URL) to File if needed
+      let receiptFile: File | undefined;
+      if (newExpense.receiptUrl && newExpense.receiptUrl.startsWith('blob:')) {
+        try {
+          const response = await fetch(newExpense.receiptUrl);
+          const blob = await response.blob();
+          receiptFile = new File([blob], `receipt-${newExpense.id}.${newExpense.fileType === 'pdf' ? 'pdf' : 'jpg'}`, { type: blob.type });
+          console.log('Receipt file prepared:', receiptFile.name, receiptFile.size, 'bytes');
+        } catch (err) {
+          console.warn('Failed to convert blob to file:', err);
+        }
+      }
+
+      const { data, error } = await expenseService.createExpense(newExpense, userId, receiptFile);
+      if (error) {
+        console.error('Failed to save expense to Supabase:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        // 如果保存失败，从本地状态中移除
+        setExpenses(prev => prev.filter(e => e.id !== newExpense.id));
+        alert(`Failed to save expense: ${error.message || JSON.stringify(error)}`);
+        return;
+      }
+      console.log('Expense saved successfully:', data);
+    } catch (error: any) {
+      console.error('Failed to save expense to Supabase:', error);
+      console.error('Exception details:', error);
+      // 如果保存失败，从本地状态中移除
+      setExpenses(prev => prev.filter(e => e.id !== newExpense.id));
+      alert(`Failed to save expense: ${error?.message || 'Unknown error'}`);
+    }
   };
 
-  const handleConsumeCredit = (amount: number) => {
-    setCredits(prev => Math.max(0, prev - amount));
+  const handleConsumeCredit = async (amount: number, type: 'scan' | 'audit' = 'scan') => {
+    if (!userId) return;
+
+    try {
+      const result = await creditService.consumeCredits(userId, amount, type);
+      if (result.success) {
+        setCredits(result.remainingCredits);
+      } else {
+        alert(result.error?.message || 'Credit消费失败');
+      }
+    } catch (error) {
+      console.error('Failed to consume credits:', error);
+      alert('Credit消费失败，请重试');
+    }
   };
 
   // This function is kept to satisfy interface but actual credit addition is disabled in UI
@@ -213,6 +424,34 @@ const App: React.FC = () => {
     [expenses, editingExpenseId]
   );
 
+  // Show loading state while checking auth
+  if (isLoadingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="animate-spin text-brand-green" size={48} />
+      </div>
+    );
+  }
+
+  // Show auth modal if not authenticated
+  if (!userId) {
+    return (
+      <>
+        <LandingPage onEnterApp={() => setIsAuthModalOpen(true)} />
+        <AuthModal 
+          isOpen={isAuthModalOpen}
+          onClose={() => {
+            if (!userId) {
+              // Only allow closing if user is authenticated
+              setIsAuthModalOpen(false);
+            }
+          }}
+          onAuthSuccess={handleAuthSuccess}
+        />
+      </>
+    );
+  }
+
   // --- RENDER: Landing Page View ---
   if (isLandingPage) {
     return <LandingPage onEnterApp={() => setIsLandingPage(false)} />;
@@ -259,7 +498,15 @@ const App: React.FC = () => {
                     <span className="bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded text-xs font-medium uppercase tracking-wide">
                         {currentView === 'audit' ? 'Beta' : 'Draft'}
                     </span>
-                    <span>From <span className="text-blue-500 hover:underline cursor-pointer">Guest Workspace</span></span>
+                    <span>From <span className="text-blue-500 hover:underline cursor-pointer">User Workspace</span></span>
+                    <button
+                      onClick={handleSignOut}
+                      className="ml-4 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                      title="Sign Out"
+                    >
+                      <LogOut size={14} />
+                      Sign Out
+                    </button>
                 </div>
              </div>
           </div>
@@ -268,26 +515,61 @@ const App: React.FC = () => {
               <div className="flex items-center gap-3">
                 {selectedCount > 0 && (
                     <>
-                        {trips.length > 0 && (
-                            <div className="relative group">
-                                <button className="px-4 py-2 text-gray-700 border border-gray-200 bg-white rounded-full font-medium hover:bg-gray-50 transition-colors text-sm flex items-center gap-2">
+                        {trips.length > 0 ? (
+                            <div className="relative">
+                                <button 
+                                  data-trip-button
+                                  className="px-4 py-2 text-gray-700 border border-gray-200 bg-white rounded-full font-medium hover:bg-gray-50 transition-colors text-sm flex items-center gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const dropdown = document.getElementById('trip-dropdown');
+                                    dropdown?.classList.toggle('hidden');
+                                  }}
+                                >
                                     <FolderInput size={16} />
-                                    Move to Trip
+                                    Move to Trip ({selectedCount})
                                 </button>
-                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 hidden group-hover:block z-30">
-                                    <div className="py-1">
+                                <div 
+                                  id="trip-dropdown"
+                                  className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-30 hidden"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div className="py-2">
+                                        <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100">
+                                          Select Trip
+                                        </div>
                                         {trips.map(trip => (
                                             <button
                                                 key={trip.id}
-                                                onClick={() => handleAssignToTrip(trip.id)}
-                                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                                onClick={() => {
+                                                  handleAssignToTrip(trip.id);
+                                                  document.getElementById('trip-dropdown')?.classList.add('hidden');
+                                                }}
+                                                className="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                                             >
                                                 {trip.name}
                                             </button>
                                         ))}
+                                        <button
+                                          onClick={() => {
+                                            setIsCreateTripOpen(true);
+                                            document.getElementById('trip-dropdown')?.classList.add('hidden');
+                                          }}
+                                          className="block w-full text-left px-4 py-2.5 text-sm text-brand-green hover:bg-green-50 transition-colors border-t border-gray-100 mt-1"
+                                        >
+                                          + Create New Trip
+                                        </button>
                                     </div>
                                 </div>
                             </div>
+                        ) : (
+                            <button
+                              onClick={() => setIsCreateTripOpen(true)}
+                              className="px-4 py-2 text-brand-green border border-brand-green bg-white rounded-full font-medium hover:bg-green-50 transition-colors text-sm flex items-center gap-2"
+                            >
+                              <FolderInput size={16} />
+                              Create Trip to Move ({selectedCount})
+                            </button>
                         )}
 
                         <button 
@@ -341,7 +623,7 @@ const App: React.FC = () => {
                 expenses={expenses} 
                 onUpdateExpense={handleExpenseUpdate}
                 credits={credits}
-                onConsumeCredit={handleConsumeCredit}
+                onConsumeCredit={(amount) => handleConsumeCredit(amount, 'audit')}
             />
         ) : (
             <>
@@ -470,6 +752,12 @@ const App: React.FC = () => {
             isOpen={isCreateTripOpen}
             onClose={() => setIsCreateTripOpen(false)}
             onCreate={handleCreateTrip}
+        />
+
+        <AuthModal 
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          onAuthSuccess={handleAuthSuccess}
         />
       </main>
     </div>
