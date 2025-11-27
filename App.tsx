@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { ChevronLeft, Search, MoreHorizontal, Send, Smile, Paperclip, Loader2, Trash2, FolderInput, FileSpreadsheet, LogOut } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ExpenseRow from './components/ExpenseRow';
@@ -13,6 +13,11 @@ import { Expense, Report, Trip } from './types';
 import { generateExpenseReportPDF } from './services/pdfService';
 import { generateExpenseReportExcel } from './services/excelService';
 import { authService, expenseService, tripService, creditService } from './services/supabaseService';
+import {
+  fetchExchangeRates,
+  CurrencyCode,
+  ExchangeRateResponse,
+} from './services/exchangeRateService';
 import { checkExpenseDuplicate } from './services/duplicateService';
 
 // Start with empty state as requested
@@ -44,6 +49,80 @@ const App: React.FC = () => {
 
   // Credits from Supabase
   const [credits, setCredits] = useState<number>(0);
+
+  const currencyOptions: CurrencyCode[] = ['CNY', 'USD', 'JPY', 'KRW'];
+  const defaultRates: ExchangeRateResponse = {
+    CNY: 1,
+    USD: 0.14,
+    JPY: 17,
+    KRW: 172,
+  };
+
+  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = window.localStorage.getItem('yeahzea_selected_currency') as CurrencyCode | null;
+      if (saved && currencyOptions.includes(saved)) {
+        return saved;
+      }
+    }
+    return 'CNY';
+  });
+
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRateResponse>(defaultRates);
+  const [rateStatus, setRateStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [rateError, setRateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('yeahzea_selected_currency', selectedCurrency);
+    } catch (error) {
+      console.warn('Unable to persist selected currency', error);
+    }
+  }, [selectedCurrency]);
+
+  const fetchRates = useCallback(async () => {
+    setRateStatus('loading');
+    try {
+      const rates = await fetchExchangeRates();
+      setExchangeRates({
+        CNY: 1,
+        USD: rates.USD || defaultRates.USD,
+        JPY: rates.JPY || defaultRates.JPY,
+        KRW: rates.KRW || defaultRates.KRW,
+      });
+      setRateStatus('idle');
+      setRateError(null);
+    } catch (error: any) {
+      console.error('Failed to fetch exchange rates:', error);
+      setRateStatus('error');
+      setRateError(error?.message || 'Unable to load exchange rates');
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRates();
+    const intervalId = setInterval(fetchRates, 10 * 60 * 1000);
+    return () => clearInterval(intervalId);
+  }, [fetchRates]);
+
+  const getToCNYRate = useCallback(
+    (currency?: string) => {
+      if (!currency || currency === 'CNY') return 1;
+      const rate = exchangeRates[currency as CurrencyCode];
+      return rate && rate > 0 ? 1 / rate : 1;
+    },
+    [exchangeRates]
+  );
+
+  const convertExpenseToSelected = useCallback(
+    (expense: Expense) => {
+      const currency = (expense.currency as CurrencyCode) || 'CNY';
+      const amountInCNY = expense.amount * getToCNYRate(currency);
+      const targetRate = selectedCurrency === 'CNY' ? 1 : exchangeRates[selectedCurrency] || 1;
+      return amountInCNY * targetRate;
+    },
+    [exchangeRates, getToCNYRate, selectedCurrency]
+  );
 
   // Check authentication status on mount
   useEffect(() => {
@@ -298,6 +377,16 @@ const App: React.FC = () => {
     }, 0);
   }, [filteredExpenses]);
 
+  const totalsByCurrency = useMemo(() => {
+    return filteredExpenses.reduce<Record<string, number>>((acc, expense) => {
+      if (expense.isPersonalExpense) return acc;
+      const currency = expense.currency || 'CNY';
+      acc[currency] = (acc[currency] || 0) + expense.amount;
+      return acc;
+    }, {});
+  }, [filteredExpenses]);
+  const totalEntries = Object.entries(totalsByCurrency);
+
   const addExpense = async (newExpense: Expense) => {
     if (!userId) {
       console.error('Cannot add expense: userId is null');
@@ -486,6 +575,12 @@ const App: React.FC = () => {
         onCreateTrip={() => setIsCreateTripOpen(true)}
         currentView={currentView}
         onChangeView={setCurrentView}
+        selectedCurrency={selectedCurrency}
+        exchangeRates={exchangeRates}
+        onCurrencyChange={setSelectedCurrency}
+        rateStatus={rateStatus}
+        rateError={rateError}
+        convertExpenseAmount={convertExpenseToSelected}
       />
 
       <main className="flex-1 ml-64 flex flex-col h-screen relative">
@@ -714,26 +809,34 @@ const App: React.FC = () => {
                                 Add expense <span className="text-[10px]">▼</span>
                             </button>
                          </div>
-                         <div className="flex items-center gap-8">
+                         <div className="flex flex-col items-end gap-0.5 text-right">
                              <span className="text-sm text-gray-500 uppercase tracking-wide font-medium">Total Reimbursable</span>
-                             <span className="text-xl font-bold text-gray-900">${totalAmount.toFixed(2)}</span>
+                             {totalEntries.length === 0 ? (
+                                 <span className="text-xl font-bold text-gray-900">$0.00</span>
+                             ) : (
+                                 totalEntries.map(([currency, amount]) => (
+                                     <span key={currency} className="text-xl font-bold text-gray-900">
+                                         {currency} {(amount as number).toFixed(2)}
+                                     </span>
+                                 ))
+                             )}
                          </div>
                     </div>
                     
                     <div className="px-8 py-4">
-                        <div className="flex gap-4 mb-4">
-                            <div className="w-8 h-8 rounded-full bg-orange-600 flex-shrink-0 flex items-center justify-center text-white font-bold text-xs">
-                                G
-                            </div>
-                            <div>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="font-bold text-sm text-gray-900">Guest User</span>
-                                    <span className="text-xs text-gray-400">Today</span>
-                                </div>
-                                <p className="text-sm text-gray-600 mt-0.5">viewing {currentTripName}</p>
-                            </div>
-                            <span className="ml-auto text-xs font-bold text-green-500">Active</span>
+                    <div className="flex gap-4 mb-4">
+                        <div className="w-8 h-8 rounded-full bg-orange-600 flex-shrink-0 flex items-center justify-center text-white font-bold text-xs">
+                            G
                         </div>
+                        <div>
+                            <div className="flex items-baseline gap-2">
+                                <span className="font-bold text-sm text-gray-900">Guest User</span>
+                                <span className="text-xs text-gray-400">Today</span>
+                            </div>
+                            <p className="text-sm text-gray-600 mt-0.5">viewing {currentTripName}</p>
+                        </div>
+                        <span className="ml-auto text-xs font-bold text-green-500">Active</span>
+                    </div>
                     </div>
                 </div>
             </>

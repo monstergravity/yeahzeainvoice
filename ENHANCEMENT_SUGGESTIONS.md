@@ -135,6 +135,16 @@ interface ReportTemplate {
 - 灵活适应不同公司的报销格式要求
 - 支持与现有财务系统集成
 
+## 新增 OCR 买方信息存储
+- 在 `parseReceiptImage` prompt 中让 Gemini 额外提取 `buyer_name` 与 `buyer_tax_id`，并通过 JSON schema 返回。
+- 数据通过 `expenseService.createExpense` / `updateExpense` 写进新扩展的 `expenses.buyer_name` 与 `buyer_tax_id`，为后续报销审核提供合规凭证。
+- 因为 UI 不展示这两个字段，所以仅后台记录即可，避免界面复杂度。
+
+## Spending Pulse 多币种展示
+- 添加实时汇率服务（例如 `exchangerate.host`），每 5-10 分钟刷新 `CNY → USD/JPY/KRW` 汇率。
+- `Sidebar` 的 Spending Pulse 提供币种选择（人民币/美元/日元/韩元），所有统计数字（总额、类别占比）都按用户选中的币种换算。
+- 当汇率不可用时提示并回退 1:1，增强跨国团队对费用的可视化理解。
+
 ---
 
 ## 实施优先级建议

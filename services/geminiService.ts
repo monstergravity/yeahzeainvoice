@@ -44,6 +44,8 @@ export const parseReceiptImage = async (base64Data: string, mimeType: string = '
           {
             text: `Analyze this receipt/invoice. Extract the following details:
             - Merchant Name
+            - Buyer Name
+            - Buyer Tax ID (if present)
             - Date (YYYY-MM-DD format)
             - Total Amount
             - Tax Amount (if visible/applicable)
@@ -60,6 +62,8 @@ export const parseReceiptImage = async (base64Data: string, mimeType: string = '
           type: Type.OBJECT,
           properties: {
             merchant: { type: Type.STRING },
+            buyer_name: { type: Type.STRING },
+            buyer_tax_id: { type: Type.STRING },
             date: { type: Type.STRING },
             amount: { type: Type.NUMBER },
             tax: { type: Type.NUMBER },
@@ -77,16 +81,18 @@ export const parseReceiptImage = async (base64Data: string, mimeType: string = '
     const data = JSON.parse(text);
     
     // Basic post-processing
-    return {
-      merchant: data.merchant || "Unknown Merchant",
-      date: data.date || new Date().toISOString().split('T')[0],
-      amount: data.amount || 0,
-      tax: data.tax || 0,
-      currency: data.currency || "CNY",
-      category: data.category || undefined, 
-      status: data.category ? 'valid' : 'warning',
-      warningMessage: data.category ? undefined : 'Missing category.',
-    };
+  return {
+    merchant: data.merchant || "Unknown Merchant",
+    buyerName: data.buyer_name || undefined,
+    buyerTaxId: data.buyer_tax_id || undefined,
+    date: data.date || new Date().toISOString().split('T')[0],
+    amount: data.amount || 0,
+    tax: data.tax || 0,
+    currency: data.currency || "CNY",
+    category: data.category || undefined, 
+    status: data.category ? 'valid' : 'warning',
+    warningMessage: data.category ? undefined : 'Missing category.',
+  };
 
   } catch (error) {
     console.error("Gemini API Error (All models failed):", error);

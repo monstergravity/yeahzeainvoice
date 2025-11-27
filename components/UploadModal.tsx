@@ -71,6 +71,8 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddExpense
           id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
           date: parsedData.date || new Date().toISOString(),
           merchant: parsedData.merchant || "Unknown",
+          buyerName: parsedData.buyerName,
+          buyerTaxId: parsedData.buyerTaxId,
           amount: parsedData.amount || 0,
           currency: parsedData.currency || "CNY",
           tax: parsedData.tax || 0,

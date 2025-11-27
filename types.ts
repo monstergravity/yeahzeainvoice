@@ -14,6 +14,8 @@ export interface Expense {
   warningMessage?: string;
   selected: boolean;
   tripId?: string;
+  buyerName?: string;
+  buyerTaxId?: string;
   
   // AI Audit Fields
   aiAuditRan?: boolean;

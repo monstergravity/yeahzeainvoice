@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { LayoutDashboard, FileText, Briefcase, User, CreditCard, MessageSquare, PieChart, PlusCircle, Map, Mail, Sparkles, BrainCircuit, Activity } from 'lucide-react';
 import { Trip, Expense } from '../types';
+import { CurrencyCode } from '../services/exchangeRateService';
 
 interface SidebarProps {
   credits?: number;
@@ -12,6 +13,12 @@ interface SidebarProps {
   currentView: 'expenses' | 'audit';
   onChangeView: (view: 'expenses' | 'audit') => void;
   expenses: Expense[];
+  selectedCurrency: CurrencyCode;
+  exchangeRates: Record<CurrencyCode, number>;
+  onCurrencyChange: (currency: CurrencyCode) => void;
+  rateStatus: 'idle' | 'loading' | 'error';
+  rateError?: string | null;
+  convertExpenseAmount: (expense: Expense) => number;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -23,8 +30,21 @@ const Sidebar: React.FC<SidebarProps> = ({
   onCreateTrip,
   currentView,
   onChangeView,
-  expenses
+  expenses,
+  selectedCurrency,
+  exchangeRates,
+  onCurrencyChange,
+  rateStatus,
+  rateError,
+  convertExpenseAmount
 }) => {
+  const currencyOptions: CurrencyCode[] = ['CNY', 'USD', 'JPY', 'KRW'];
+  const currencyLabels: Record<CurrencyCode, string> = {
+    CNY: 'CNY (¥)',
+    USD: 'USD ($)',
+    JPY: 'JPY (¥)',
+    KRW: 'KRW (₩)',
+  };
   
   // Calculate Spending Pulse Data
   const spendingPulse = useMemo(() => {
@@ -32,9 +52,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     let total = 0;
     expenses.forEach(e => {
         if (e.isPersonalExpense) return;
+        const convertedAmount = convertExpenseAmount(e);
         const cat = e.category || 'Other';
-        categories[cat] = (categories[cat] || 0) + e.amount;
-        total += e.amount;
+        categories[cat] = (categories[cat] || 0) + convertedAmount;
+        total += convertedAmount;
     });
 
     const sortedCats = Object.entries(categories)
@@ -42,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         .slice(0, 3); // Top 3
     
     return { total, topCategories: sortedCats };
-  }, [expenses]);
+  }, [expenses, convertExpenseAmount]);
 
   return (
     <aside className="w-64 h-screen bg-white border-r border-brand-border flex flex-col fixed left-0 top-0 z-10">
@@ -105,7 +126,25 @@ const Sidebar: React.FC<SidebarProps> = ({
         />
 
         {/* Spending Pulse Widget */}
-        {spendingPulse.total > 0 && (
+            <div className="flex justify-between items-center mb-3">
+              <div className="flex items-center gap-3">
+                <Activity size={16} className="text-brand-green" />
+                <span className="text-xs font-bold uppercase tracking-wide">Spending Pulse</span>
+              </div>
+              <select
+                value={selectedCurrency}
+                onChange={(e) => onCurrencyChange(e.target.value as CurrencyCode)}
+                className="text-xs font-semibold border border-gray-200 rounded px-2 py-0.5 bg-white text-gray-600"
+              >
+                {currencyOptions.map(currency => (
+                  <option key={currency} value={currency}>
+                    {currencyLabels[currency]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {spendingPulse.total > 0 && (
             <div className="mt-6 mx-2 p-4 bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl shadow-lg text-white relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-2 opacity-10">
                     <Activity size={64} />
@@ -113,12 +152,19 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div className="flex items-center gap-2 mb-3 relative z-10">
                     <Activity size={16} className="text-brand-green" />
                     <span className="text-xs font-bold uppercase tracking-wide">Spending Pulse</span>
+                    <span className="text-[10px] text-gray-300 ml-2">
+                      {rateStatus === 'loading'
+                        ? 'Refreshing exchange rates...'
+                        : rateStatus === 'error'
+                          ? 'Exchange rates unavailable, using fallback'
+                          : `1 CNY = ${(exchangeRates[selectedCurrency] || 1).toFixed(4)} ${selectedCurrency}`}
+                    </span>
                 </div>
                 <div className="text-2xl font-bold mb-4 relative z-10">
-                    ¥{spendingPulse.total.toFixed(0)}
+                    {currencyLabels[selectedCurrency]} {spendingPulse.total.toFixed(2)}
                 </div>
                 <div className="space-y-2 relative z-10">
-                    {spendingPulse.topCategories.map(([cat, amount], i) => (
+                  {spendingPulse.topCategories.map(([cat, amount], i) => (
                         <div key={cat} className="flex items-center text-xs">
                             <div className="w-2 h-2 rounded-full bg-brand-green mr-2" style={{ opacity: 1 - i * 0.3 }}></div>
                             <span className="flex-1 truncate text-gray-300">{cat}</span>

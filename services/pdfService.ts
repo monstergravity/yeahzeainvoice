@@ -2,11 +2,18 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Expense } from "../types";
 
-// Use unpkg for better raw file availability for this font
-const FONT_URL = 'https://unpkg.com/fireflysung@1.0.0/FireflySung.ttf';
-const FONT_NAME = 'FireflySung';
+// Use Google Noto Sans SC via jsDelivr (CJK supporting font with proper CORS headers)
+const FONT_URL = 'https://cdn.jsdelivr.net/gh/googlefonts/noto-cjk@main/Sans/OTF/NotoSansSC-Regular.otf';
+const FONT_NAME = 'NotoSansSC';
+
+let loadedFont = false;
 
 const loadChineseFont = async (doc: jsPDF): Promise<boolean> => {
+  if (loadedFont) {
+    doc.setFont(FONT_NAME);
+    return true;
+  }
+
   try {
     const response = await fetch(FONT_URL, { mode: 'cors' });
     if (!response.ok) {
@@ -20,9 +27,10 @@ const loadChineseFont = async (doc: jsPDF): Promise<boolean> => {
         const result = reader.result as string;
         if (result && result.includes(',')) {
           const base64data = result.split(',')[1];
-          doc.addFileToVFS('FireflySung.ttf', base64data);
-          doc.addFont('FireflySung.ttf', FONT_NAME, 'normal');
+          doc.addFileToVFS('NotoSansSC.ttf', base64data);
+          doc.addFont('NotoSansSC.ttf', FONT_NAME, 'normal');
           doc.setFont(FONT_NAME);
+          loadedFont = true;
           console.log('Chinese font loaded successfully');
           resolve(true);
         } else {
@@ -48,6 +56,7 @@ export const generateExpenseReportPDF = async (expenses: Expense[], reportName: 
   
   // Load font for Chinese support
   const fontLoaded = await loadChineseFont(doc);
+  const baseFont = fontLoaded ? FONT_NAME : 'helvetica';
 
   const brandGreen = [0, 209, 111] as [number, number, number];
 
@@ -55,7 +64,7 @@ export const generateExpenseReportPDF = async (expenses: Expense[], reportName: 
   doc.setFontSize(22);
   doc.setTextColor(40, 40, 40);
   // If font loaded, we can use it here too, otherwise default (Helvetica)
-  if (fontLoaded) doc.setFont(FONT_NAME); 
+  doc.setFont(baseFont);
   doc.text("Expense Report Summary", 14, 20);
 
   // Metadata
@@ -86,7 +95,7 @@ export const generateExpenseReportPDF = async (expenses: Expense[], reportName: 
     startY: 60,
     theme: 'grid',
     styles: {
-      font: fontLoaded ? FONT_NAME : 'helvetica', // Conditionally apply font
+      font: baseFont,
       fontStyle: 'normal',
       fontSize: 9,
       cellPadding: 4,
@@ -98,6 +107,7 @@ export const generateExpenseReportPDF = async (expenses: Expense[], reportName: 
       fillColor: brandGreen,
       textColor: [255, 255, 255],
       fontStyle: 'bold', 
+      font: baseFont,
     },
     columnStyles: {
       4: { halign: 'right' }, // Amount column
@@ -110,7 +120,8 @@ export const generateExpenseReportPDF = async (expenses: Expense[], reportName: 
     footStyles: {
       fillColor: [240, 240, 240],
       textColor: [40, 40, 40],
-      fontStyle: 'bold' 
+      fontStyle: 'bold',
+      font: baseFont
     }
   });
 

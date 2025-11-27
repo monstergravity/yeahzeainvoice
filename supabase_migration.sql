@@ -29,6 +29,10 @@ CREATE TABLE IF NOT EXISTS expenses (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+ALTER TABLE IF EXISTS expenses
+  ADD COLUMN IF NOT EXISTS buyer_name TEXT,
+  ADD COLUMN IF NOT EXISTS buyer_tax_id TEXT;
+
 -- 创建索引以提高查询性能
 CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses(user_id);
 CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date DESC);

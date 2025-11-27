@@ -68,10 +68,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       <section className="pt-40 pb-20 px-6 md:px-8">
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-5xl md:text-7xl font-extrabold mb-6 text-gray-900 tracking-tight leading-tight">
-            Travel Expense & Reimbursement <br className="hidden md:block" /> Automation for Small Business
+            Travel Expense & Reimbursement <br className="hidden md:block" /> made simple.
           </h1>
           <p className="text-xl md:text-2xl text-gray-500 mb-6 max-w-3xl mx-auto leading-relaxed">
-            Automate travel expense reimbursement at low cost. AI translates foreign language invoices from Asia business trips, identifies expense purpose for finance teams, and audits personal expenses to reduce costs.
+          Snap a photo, auto-process instantly. The smartest way to manage expenses.
           </p>
           <p className="text-lg md:text-xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
             Travel Expense Management • Reimbursement Automation • Foreign Invoice Translation • AI Compliance Audit • Automated Travel Expense Reports
