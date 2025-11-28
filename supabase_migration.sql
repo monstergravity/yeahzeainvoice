@@ -202,6 +202,70 @@ CREATE TRIGGER on_auth_user_created
   EXECUTE FUNCTION handle_new_user();
 
 -- ============================================
+-- 6. 创建 credit_card_transactions 表（信用卡交易表）
+-- ============================================
+CREATE TABLE IF NOT EXISTS credit_card_transactions (
+  id TEXT PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  date TIMESTAMP WITH TIME ZONE NOT NULL,
+  merchant TEXT NOT NULL,
+  amount DECIMAL(10, 2) NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  transaction_type TEXT NOT NULL DEFAULT 'purchase' CHECK (transaction_type IN ('purchase', 'refund', 'fee', 'payment')),
+  card_last4 TEXT,
+  description TEXT,
+  statement_id TEXT,
+  matched_expense_id TEXT REFERENCES expenses(id) ON DELETE SET NULL,
+  match_status TEXT NOT NULL DEFAULT 'unmatched' CHECK (match_status IN ('matched', 'pending', 'unmatched')),
+  match_confidence DECIMAL(3, 2),
+  -- Additional fields for better bank statement support
+  counter_party TEXT,
+  reference_number TEXT,
+  account_number TEXT,
+  category TEXT,
+  location TEXT,
+  post_date TIMESTAMP WITH TIME ZONE,
+  raw_data JSONB, -- Store original row data for debugging and future enhancements
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 创建索引
+CREATE INDEX IF NOT EXISTS idx_cc_transactions_user_id ON credit_card_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_cc_transactions_date ON credit_card_transactions(date DESC);
+CREATE INDEX IF NOT EXISTS idx_cc_transactions_match_status ON credit_card_transactions(match_status);
+CREATE INDEX IF NOT EXISTS idx_cc_transactions_user_date ON credit_card_transactions(user_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_cc_transactions_matched_expense ON credit_card_transactions(matched_expense_id) WHERE matched_expense_id IS NOT NULL;
+
+-- RLS Policies for credit_card_transactions
+ALTER TABLE credit_card_transactions ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Users can only see their own transactions
+CREATE POLICY "Users can view own transactions"
+  ON credit_card_transactions
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Policy: Users can insert their own transactions
+CREATE POLICY "Users can insert own transactions"
+  ON credit_card_transactions
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Policy: Users can update their own transactions
+CREATE POLICY "Users can update own transactions"
+  ON credit_card_transactions
+  FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Policy: Users can delete their own transactions
+CREATE POLICY "Users can delete own transactions"
+  ON credit_card_transactions
+  FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- ============================================
 -- 完成！
 -- ============================================
 -- 所有表和策略已创建完成

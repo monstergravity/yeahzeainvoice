@@ -55,3 +55,53 @@ export enum ProcessingStatus {
   SUCCESS = 'success',
   ERROR = 'error'
 }
+
+// Bank Reconciliation Types
+export interface CreditCardTransaction {
+  id: string;
+  userId: string;
+  date: string;
+  merchant: string;
+  amount: number;
+  currency: string;
+  transactionType: 'purchase' | 'refund' | 'fee' | 'payment';
+  cardLast4?: string;
+  description?: string;
+  statementId?: string;
+  matchedExpenseId?: string;
+  matchStatus: 'matched' | 'pending' | 'unmatched';
+  matchConfidence?: number; // 0-1, similarity score
+  // Additional fields for better bank statement support
+  counterParty?: string;
+  referenceNumber?: string;
+  accountNumber?: string;
+  category?: string;
+  location?: string;
+  postDate?: string;
+  rawData?: Record<string, any>; // Store original row data
+  createdAt?: string;
+}
+
+export interface MatchResult {
+  transaction: CreditCardTransaction;
+  expense: Expense;
+  matchType: 'exact' | 'fuzzy' | 'partial';
+  confidence: number; // 0-1
+  reasons: string[]; // Why it matched
+}
+
+export interface BankReconciliation {
+  transactions: CreditCardTransaction[];
+  expenses: Expense[];
+  matches: MatchResult[];
+  unmatchedTransactions: CreditCardTransaction[];
+  unmatchedExpenses: Expense[];
+  summary: {
+    totalTransactions: number;
+    totalExpenses: number;
+    matchedCount: number;
+    pendingCount: number;
+    unmatchedTransactionCount: number;
+    unmatchedExpenseCount: number;
+  };
+}

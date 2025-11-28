@@ -10,8 +10,8 @@ interface SidebarProps {
   selectedTripId: string | null;
   onSelectTrip: (id: string | null) => void;
   onCreateTrip: () => void;
-  currentView: 'expenses' | 'audit';
-  onChangeView: (view: 'expenses' | 'audit') => void;
+  currentView: 'expenses' | 'audit' | 'reconciliation';
+  onChangeView: (view: 'expenses' | 'audit' | 'reconciliation') => void;
   expenses: Expense[];
   selectedCurrency: CurrencyCode;
   exchangeRates: Record<CurrencyCode, number>;
@@ -123,6 +123,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             label="AI Analyst" 
             active={currentView === 'audit'}
             onClick={() => onChangeView('audit')}
+        />
+        <SidebarItem 
+            icon={<CreditCard size={20} />} 
+            label="Bank Reconciliation" 
+            active={currentView === 'reconciliation'}
+            onClick={() => onChangeView('reconciliation')}
         />
 
         {/* Spending Pulse Widget */}

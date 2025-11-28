@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { ChevronLeft, Search, MoreHorizontal, Send, Smile, Paperclip, Loader2, Trash2, FolderInput, FileSpreadsheet, LogOut } from 'lucide-react';
+import { ChevronLeft, Search, MoreHorizontal, Send, Smile, Paperclip, Loader2, Trash2, FolderInput, FileSpreadsheet, LogOut, CreditCard } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ExpenseRow from './components/ExpenseRow';
 import UploadModal from './components/UploadModal';
@@ -8,8 +8,10 @@ import BuyCreditsModal from './components/BuyCreditsModal';
 import CreateTripModal from './components/CreateTripModal';
 import AIAuditView from './components/AIAuditView';
 import AuthModal from './components/AuthModal';
+import ReconciliationModal from './components/ReconciliationModal';
+import ReconciliationView from './components/ReconciliationView';
 import { LandingPage } from './components/LandingPage';
-import { Expense, Report, Trip } from './types';
+import { Expense, Report, Trip, CreditCardTransaction, BankReconciliation } from './types';
 import { generateExpenseReportPDF } from './services/pdfService';
 import { generateExpenseReportExcel } from './services/excelService';
 import { authService, expenseService, tripService, creditService } from './services/supabaseService';
@@ -19,6 +21,11 @@ import {
   ExchangeRateResponse,
 } from './services/exchangeRateService';
 import { checkExpenseDuplicate } from './services/duplicateService';
+import {
+  getTransactions,
+  matchTransactions,
+  generateReconciliation
+} from './services/reconciliationService';
 
 // Start with empty state as requested
 const INITIAL_EXPENSES: Expense[] = [];
@@ -37,12 +44,17 @@ const App: React.FC = () => {
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   
   // App View State (inside Dashboard)
-  const [currentView, setCurrentView] = useState<'expenses' | 'audit'>('expenses');
+  const [currentView, setCurrentView] = useState<'expenses' | 'audit' | 'reconciliation'>('expenses');
 
   // Modal States
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isBuyCreditsOpen, setIsBuyCreditsOpen] = useState(false);
   const [isCreateTripOpen, setIsCreateTripOpen] = useState(false);
+  const [isReconciliationModalOpen, setIsReconciliationModalOpen] = useState(false);
+  
+  // Reconciliation State
+  const [creditCardTransactions, setCreditCardTransactions] = useState<CreditCardTransaction[]>([]);
+  const [reconciliation, setReconciliation] = useState<BankReconciliation | null>(null);
   
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -168,26 +180,95 @@ const App: React.FC = () => {
   // Load user data from Supabase
   const loadUserData = async (uid: string) => {
     try {
-      // Load expenses
-      const { data: expensesData, error: expensesError } = await expenseService.getExpenses(uid);
-      if (!expensesError && expensesData) {
-        setExpenses(expensesData);
+      // Load all data in parallel
+      const [expensesResult, tripsResult, creditsResult, transactionsResult] = await Promise.all([
+        expenseService.getExpenses(uid),
+        tripService.getTrips(uid),
+        creditService.getCredits(uid),
+        getTransactions(uid)
+      ]);
+
+      // Set expenses
+      if (!expensesResult.error && expensesResult.data) {
+        setExpenses(expensesResult.data);
       }
 
-      // Load trips
-      const { data: tripsData, error: tripsError } = await tripService.getTrips(uid);
-      if (!tripsError && tripsData) {
-        setTrips(tripsData);
+      // Set trips
+      if (!tripsResult.error && tripsResult.data) {
+        setTrips(tripsResult.data);
       }
 
-      // Load credits
-      const { data: creditsData, error: creditsError } = await creditService.getCredits(uid);
-      if (!creditsError && creditsData !== undefined) {
-        setCredits(creditsData);
+      // Set credits
+      if (!creditsResult.error && creditsResult.data !== undefined) {
+        setCredits(creditsResult.data);
+      }
+
+      // Set credit card transactions and generate reconciliation
+      if (transactionsResult.data) {
+        setCreditCardTransactions(transactionsResult.data);
+        
+        // Always generate reconciliation if we have transactions
+        // Use the loaded expensesData, not the state variable
+        const loadedExpenses = expensesResult.data || [];
+        if (transactionsResult.data.length > 0) {
+          const matches = matchTransactions(transactionsResult.data, loadedExpenses);
+          const recon = generateReconciliation(transactionsResult.data, loadedExpenses, matches);
+          setReconciliation(recon);
+          console.log(`Loaded ${transactionsResult.data.length} transactions and generated reconciliation`);
+        } else {
+          // Even with no transactions, create empty reconciliation
+          const recon = generateReconciliation([], loadedExpenses, []);
+          setReconciliation(recon);
+        }
+      } else if (transactionsResult.error) {
+        console.error('Failed to load transactions:', transactionsResult.error);
+        // Create empty reconciliation on error
+        const loadedExpenses = expensesResult.data || [];
+        const recon = generateReconciliation([], loadedExpenses, []);
+        setReconciliation(recon);
       }
     } catch (error) {
       console.error('Failed to load user data:', error);
     }
+  };
+
+  const handleReconciliationImport = async (transactions: CreditCardTransaction[]) => {
+    setCreditCardTransactions(prev => [...transactions, ...prev]);
+    
+    // Auto-match with existing expenses
+    if (expenses.length > 0) {
+      const matches = matchTransactions(transactions, expenses);
+      const updatedTransactions = [...creditCardTransactions, ...transactions];
+      const recon = generateReconciliation(updatedTransactions, expenses, matches);
+      setReconciliation(recon);
+    }
+    
+    // Reload user data to get latest state
+    if (userId) {
+      await loadUserData(userId);
+    }
+  };
+
+  const handleReconciliationRefresh = async () => {
+    if (!userId) return;
+    
+    const [expensesResult, transactionsResult] = await Promise.all([
+      expenseService.getExpenses(userId),
+      getTransactions(userId)
+    ]);
+
+    if (expensesResult.data && transactionsResult.data) {
+      setExpenses(expensesResult.data);
+      setCreditCardTransactions(transactionsResult.data);
+      
+      const matches = matchTransactions(transactionsResult.data, expensesResult.data);
+      const recon = generateReconciliation(transactionsResult.data, expensesResult.data, matches);
+      setReconciliation(recon);
+    }
+  };
+
+  const handleReconciliationMatchUpdate = async () => {
+    await handleReconciliationRefresh();
   };
 
   const handleAuthSuccess = async (uid: string) => {
@@ -602,7 +683,9 @@ const App: React.FC = () => {
                         <span className="text-xs">G</span>
                     </div>
                     <h1 className="text-xl font-bold text-gray-900">
-                        {currentView === 'audit' ? 'AI Analyst Dashboard' : currentTripName}
+                        {currentView === 'audit' ? 'AI Analyst Dashboard' : 
+                         currentView === 'reconciliation' ? 'Bank Reconciliation' : 
+                         currentTripName}
                     </h1>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -736,6 +819,34 @@ const App: React.FC = () => {
                 credits={credits}
                 onConsumeCredit={(amount) => handleConsumeCredit(amount, 'audit')}
             />
+        ) : currentView === 'reconciliation' ? (
+            reconciliation ? (
+                <ReconciliationView
+                    reconciliation={reconciliation}
+                    userId={userId || ''}
+                    onRefresh={handleReconciliationRefresh}
+                    onMatchUpdate={handleReconciliationMatchUpdate}
+                    onImportClick={() => setIsReconciliationModalOpen(true)}
+                />
+            ) : (
+                <div className="flex-1 flex items-center justify-center bg-gray-50">
+                    <div className="text-center max-w-md">
+                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 mx-auto text-gray-400">
+                            <CreditCard size={32} />
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Bank Reconciliation</h3>
+                        <p className="text-gray-500 mb-6">
+                            Import your credit card statement to automatically match transactions with your expenses.
+                        </p>
+                        <button
+                            onClick={() => setIsReconciliationModalOpen(true)}
+                            className="px-6 py-3 bg-brand-green text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                        >
+                            Import Credit Card Statement
+                        </button>
+                    </div>
+                </div>
+            )
         ) : (
             <>
                 {/* Standard Expense List View */}
@@ -873,6 +984,13 @@ const App: React.FC = () => {
             isOpen={isCreateTripOpen}
             onClose={() => setIsCreateTripOpen(false)}
             onCreate={handleCreateTrip}
+        />
+
+        <ReconciliationModal
+            isOpen={isReconciliationModalOpen}
+            onClose={() => setIsReconciliationModalOpen(false)}
+            userId={userId || ''}
+            onImportComplete={handleReconciliationImport}
         />
 
         <AuthModal 
