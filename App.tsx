@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { ChevronLeft, Search, MoreHorizontal, Send, Smile, Paperclip, Loader2, Trash2, FolderInput, FileSpreadsheet, LogOut, CreditCard } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import Sidebar from './components/Sidebar';
 import ExpenseRow from './components/ExpenseRow';
 import UploadModal from './components/UploadModal';
@@ -10,6 +11,8 @@ import AIAuditView from './components/AIAuditView';
 import AuthModal from './components/AuthModal';
 import ReconciliationModal from './components/ReconciliationModal';
 import ReconciliationView from './components/ReconciliationView';
+import ReimbursementWizard from './components/ReimbursementWizard';
+import { ReimbursementWizardProvider } from './contexts/ReimbursementWizardContext';
 import { LandingPage } from './components/LandingPage';
 import { Expense, Report, Trip, CreditCardTransaction, BankReconciliation } from './types';
 import { generateExpenseReportPDF } from './services/pdfService';
@@ -51,6 +54,7 @@ const App: React.FC = () => {
   const [isBuyCreditsOpen, setIsBuyCreditsOpen] = useState(false);
   const [isCreateTripOpen, setIsCreateTripOpen] = useState(false);
   const [isReconciliationModalOpen, setIsReconciliationModalOpen] = useState(false);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   
   // Reconciliation State
   const [creditCardTransactions, setCreditCardTransactions] = useState<CreditCardTransaction[]>([]);
@@ -782,6 +786,15 @@ const App: React.FC = () => {
                 >
                   Add Expense
                 </button>
+
+                <button
+                  onClick={() => setIsWizardOpen(true)}
+                  disabled={filteredExpenses.length === 0}
+                  className="px-6 py-2 bg-gradient-to-r from-brand-green to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="一键报销"
+                >
+                  <span>一键报销</span>
+                </button>
                 
                 <button
                     onClick={handleExportExcel}
@@ -878,7 +891,7 @@ const App: React.FC = () => {
                             <div className="w-6"></div>
                         </div>
 
-                        <div>
+                        <AnimatePresence mode="popLayout">
                             {filteredExpenses.map(expense => (
                                 <ExpenseRow 
                                     key={expense.id} 
@@ -889,7 +902,7 @@ const App: React.FC = () => {
                                     isDuplicate={duplicateExpenseIds.has(expense.id)}
                                 />
                             ))}
-                        </div>
+                        </AnimatePresence>
                       </>
                     ) : (
                       <div className="flex flex-col items-center justify-center h-[400px] text-gray-400 bg-gray-50/50">
@@ -992,6 +1005,18 @@ const App: React.FC = () => {
             userId={userId || ''}
             onImportComplete={handleReconciliationImport}
         />
+
+        <ReimbursementWizardProvider expenses={expenses} trips={trips}>
+          <ReimbursementWizard
+            isOpen={isWizardOpen}
+            onClose={() => setIsWizardOpen(false)}
+            onSubmit={async (expenseIds) => {
+              // TODO: Implement reimbursement submission in Phase 4
+              console.log('Submitting reimbursement for expenses:', expenseIds);
+              alert('报销单提交功能将在 Phase 4 中实现');
+            }}
+          />
+        </ReimbursementWizardProvider>
 
         <AuthModal 
           isOpen={isAuthModalOpen}

@@ -1,6 +1,13 @@
 import React from 'react';
 import { ChevronRight, AlertCircle, Trash2, User, FileText, Copy } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Expense } from '../types';
+import { 
+  cardFlyInVariants, 
+  blinkVariants, 
+  fadeVariants,
+  scaleVariants 
+} from '../utils/animations';
 
 interface ExpenseRowProps {
   expense: Expense;
@@ -15,9 +22,13 @@ const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense, onToggle, onClick, onD
   const isPdf = expense.fileType === 'pdf';
 
   return (
-    <div 
-        onClick={() => onClick(expense)}
-        className={`group relative bg-white hover:bg-brand-hover border-b border-brand-border last:border-b-0 transition-colors cursor-pointer ${isPersonal ? 'bg-gray-50/50' : ''}`}
+    <motion.div
+      variants={cardFlyInVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      onClick={() => onClick(expense)}
+      className={`group relative bg-white hover:bg-brand-hover border-b border-brand-border last:border-b-0 transition-colors cursor-pointer ${isPersonal ? 'bg-gray-50/50' : ''} ${isDuplicate ? 'border-l-4 border-l-yellow-400' : ''}`}
     >
       <div className="flex items-center py-4 px-4 gap-4">
         {/* Checkbox */}
@@ -61,18 +72,35 @@ const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense, onToggle, onClick, onD
            {/* Category */}
            <div className="col-span-4 text-sm text-gray-500 truncate flex items-center gap-2">
              {isPersonal && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                <motion.span
+                  variants={blinkVariants}
+                  animate="blink"
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700 border border-red-300"
+                >
                     <User size={10} className="mr-1" />
                     Personal
-                </span>
+                </motion.span>
              )}
              {isDuplicate && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-700 border border-yellow-300">
+                <motion.span
+                  variants={blinkVariants}
+                  animate="blink"
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-700 border border-yellow-300"
+                >
                     <Copy size={10} className="mr-1" />
                     Duplicate
-                </span>
+                </motion.span>
              )}
-             <span>{expense.category || ''}</span>
+             {expense.category && (
+               <motion.span
+                 variants={fadeVariants}
+                 initial="hidden"
+                 animate="visible"
+                 className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200"
+               >
+                 {expense.category}
+               </motion.span>
+             )}
            </div>
         </div>
 
@@ -101,14 +129,23 @@ const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense, onToggle, onClick, onD
 
       {/* Warning Line - Only if warning exists and NOT personal (personal usually has its own status, or we show warning if relevant) */}
       {expense.status === 'warning' && !isPersonal && (
-        <div className="px-4 pb-3 ml-[4.5rem] flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-status-warning"></div>
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className="px-4 pb-3 ml-[4.5rem] flex items-center gap-2"
+        >
+          <motion.div
+            variants={blinkVariants}
+            animate="blink"
+            className="w-2 h-2 rounded-full bg-status-warning"
+          />
           <span className="text-xs text-status-warning font-medium">
             {expense.warningMessage}
           </span>
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 };
 

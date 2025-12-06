@@ -1,8 +1,21 @@
 import React, { useCallback, useState } from 'react';
 import { X, UploadCloud, Loader2, AlertCircle, CreditCard, Mail, FileText, AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { parseReceiptImage } from '../services/geminiService';
 import { Expense } from '../types';
 import { findDuplicateExpenses, DuplicateMatch } from '../services/duplicateService';
+import ProcessingCard, { ProcessingStatus } from './ProcessingCard';
+import { 
+  modalVariants, 
+  backdropVariants, 
+  dragAreaVariants, 
+  slideUpVariants,
+  scaleVariants,
+  progressVariants,
+  pulseVariants,
+  bounceVariants,
+  fadeVariants
+} from '../utils/animations';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -25,6 +38,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddExpense
   } | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [processedExpenses, setProcessedExpenses] = useState<Expense[]>([]);
+  const [fileStatuses, setFileStatuses] = useState<Map<string, { status: ProcessingStatus; message?: string }>>(new Map());
 
   const readFileAsBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -51,6 +65,13 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddExpense
 
     setIsProcessing(true);
     setProcessingCount({ current: 0, total: fileArray.length });
+    
+    // Initialize file statuses
+    const initialStatuses = new Map<string, { status: ProcessingStatus; message?: string }>();
+    fileArray.forEach(file => {
+      initialStatuses.set(file.name, { status: 'pending' });
+    });
+    setFileStatuses(initialStatuses);
 
     // Process all files first
     const processedExpenses: Expense[] = [];
@@ -59,6 +80,13 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddExpense
     for (let i = 0; i < fileArray.length; i++) {
       const file = fileArray[i];
       setProcessingCount({ current: i + 1, total: fileArray.length });
+      
+      // Update status to processing
+      setFileStatuses(prev => {
+        const newMap = new Map(prev);
+        newMap.set(file.name, { status: 'processing', message: '识别中...' });
+        return newMap;
+      });
       
       try {
         const base64String = await readFileAsBase64(file);
@@ -88,6 +116,13 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddExpense
         const duplicates = findDuplicateExpenses(newExpense, existingExpenses);
         
         if (duplicates.length > 0) {
+          // Update status to warning
+          setFileStatuses(prev => {
+            const newMap = new Map(prev);
+            newMap.set(file.name, { status: 'warning', message: '疑似重复发票' });
+            return newMap;
+          });
+          
           // Show duplicate warning and pause processing
           setDuplicateWarning({ expense: newExpense, duplicates });
           setPendingFiles(fileArray.slice(i + 1));
@@ -96,9 +131,22 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddExpense
           return; // Wait for user decision
         }
 
+        // Update status to success
+        setFileStatuses(prev => {
+          const newMap = new Map(prev);
+          newMap.set(file.name, { status: 'success', message: '识别成功' });
+          return newMap;
+        });
+
         processedExpenses.push(newExpense);
       } catch (error) {
         console.error(`Failed to process file ${file.name}`, error);
+        // Update status to error
+        setFileStatuses(prev => {
+          const newMap = new Map(prev);
+          newMap.set(file.name, { status: 'error', message: '识别失败，请重试' });
+          return newMap;
+        });
       }
     }
 
@@ -233,8 +281,23 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddExpense
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative">
+    <AnimatePresence>
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        variants={backdropVariants}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      >
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          variants={modalVariants}
+          className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative"
+          onClick={(e) => e.stopPropagation()}
+        >
         <button 
           onClick={onClose} 
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
@@ -242,12 +305,25 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddExpense
           <X size={24} />
         </button>
 
-        {duplicateWarning ? (
-          <div className="py-4">
-            <div className="flex flex-col items-center text-center mb-6">
-              <div className="w-16 h-16 bg-yellow-50 text-yellow-600 rounded-full flex items-center justify-center mb-4">
-                <AlertTriangle size={32} />
-              </div>
+        <AnimatePresence mode="wait">
+          {duplicateWarning ? (
+            <motion.div
+              key="duplicate-warning"
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              variants={scaleVariants}
+              className="py-4"
+            >
+              <div className="flex flex-col items-center text-center mb-6">
+                <motion.div
+                  variants={bounceVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="w-16 h-16 bg-yellow-50 text-yellow-600 rounded-full flex items-center justify-center mb-4"
+                >
+                  <AlertTriangle size={32} />
+                </motion.div>
               <h2 className="text-xl font-bold text-gray-900 mb-2">Possible Duplicate Invoice</h2>
               <p className="text-gray-600 mb-4">
                 This invoice may be a duplicate of an existing expense.
@@ -297,13 +373,25 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddExpense
                 Cancel
               </button>
             </div>
-          </div>
+          </motion.div>
         ) : oversizedUploadCount !== null ? (
-           <div className="py-4">
+           <motion.div
+             key="insufficient-credits"
+             initial="hidden"
+             animate="visible"
+             exit="exit"
+             variants={scaleVariants}
+             className="py-4"
+           >
              <div className="flex flex-col items-center text-center mb-6">
-                <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
+                <motion.div
+                  variants={bounceVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4"
+                >
                   <AlertCircle size={32} />
-                </div>
+                </motion.div>
                 <h2 className="text-xl font-bold text-gray-900 mb-2">Insufficient Credits</h2>
                 <p className="text-gray-600">
                   You selected <span className="font-bold text-gray-900">{oversizedUploadCount}</span> items, but only have <span className="font-bold text-brand-green">{credits}</span> credits remaining.
@@ -325,9 +413,15 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddExpense
                   Adjust Selection
                 </button>
              </div>
-           </div>
+           </motion.div>
         ) : (
-          <>
+          <motion.div
+            key="upload-form"
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={slideUpVariants}
+          >
             <h2 className="text-xl font-bold text-gray-900 mb-2">Upload Receipts</h2>
             
             {credits === 0 ? (
@@ -342,31 +436,101 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddExpense
                 <p className="text-gray-500 mb-6">We'll use AI to automatically extract details. Cost: 1 credit per invoice.</p>
             )}
 
-            <div
+            <motion.div
               onDrop={credits > 0 ? onDrop : undefined}
               onDragOver={credits > 0 ? onDragOver : undefined}
               onDragLeave={credits > 0 ? onDragLeave : undefined}
+              variants={dragAreaVariants}
+              animate={isDragging ? 'dragOver' : 'idle'}
               className={`
-                border-2 border-dashed rounded-xl p-10 text-center transition-all duration-200
-                ${isDragging ? 'border-brand-green bg-green-50 scale-105' : 'border-gray-300 hover:border-brand-green/50'}
+                border-2 border-dashed rounded-xl p-10 text-center
                 ${isProcessing || credits === 0 ? 'pointer-events-none opacity-60' : ''}
               `}
             >
               {isProcessing ? (
-                <div className="flex flex-col items-center justify-center py-4">
-                  <Loader2 className="animate-spin text-brand-green mb-4" size={48} />
-                  <p className="text-gray-900 font-medium">Analyzing documents...</p>
-                  <p className="text-sm text-gray-500 mt-1">Processed {processingCount.current} of {processingCount.total}</p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center">
-                  <div className="w-16 h-16 bg-green-100 text-brand-green rounded-full flex items-center justify-center mb-4">
-                    <UploadCloud size={32} />
+                <motion.div
+                  initial="hidden"
+                  animate="visible"
+                  variants={fadeVariants}
+                  className="flex flex-col items-center justify-center py-4 w-full"
+                >
+                  {/* 顶部进度条 */}
+                  <div className="w-full mb-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-sm font-medium text-gray-900"
+                      >
+                        处理中 {processingCount.current} / {processingCount.total}
+                      </motion.p>
+                      <motion.span
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-xs text-gray-500"
+                      >
+                        {Math.round((processingCount.current / processingCount.total) * 100)}%
+                      </motion.span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                      <motion.div
+                        className="bg-brand-green h-full rounded-full"
+                        variants={progressVariants}
+                        initial="initial"
+                        animate="animate"
+                        custom={(processingCount.current / processingCount.total) * 100}
+                      />
+                    </div>
                   </div>
-                  <p className="text-lg font-medium text-gray-900 mb-1">Drag & Drop or Click to Upload</p>
-                  <p className="text-sm text-gray-400 mb-6">Supports JPG, PNG, PDF (Max 10MB)</p>
+
+                  {/* 文件处理列表 */}
+                  <div className="w-full max-h-64 overflow-y-auto">
+                    <AnimatePresence>
+                      {Array.from(fileStatuses.entries()).map(([fileName, fileStatus], index) => (
+                        <ProcessingCard
+                          key={fileName}
+                          fileName={fileName}
+                          status={fileStatus.status}
+                          message={fileStatus.message}
+                          index={index}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial="hidden"
+                  animate="visible"
+                  variants={slideUpVariants}
+                  className="flex flex-col items-center justify-center"
+                >
+                  <motion.div
+                    variants={scaleVariants}
+                    initial="hidden"
+                    animate="visible"
+                    className="w-16 h-16 bg-green-100 text-brand-green rounded-full flex items-center justify-center mb-4"
+                  >
+                    <UploadCloud size={32} />
+                  </motion.div>
+                  <motion.p
+                    variants={fadeVariants}
+                    className="text-lg font-medium text-gray-900 mb-1"
+                  >
+                    Drag & Drop or Click to Upload
+                  </motion.p>
+                  <motion.p
+                    variants={fadeVariants}
+                    className="text-sm text-gray-400 mb-6"
+                  >
+                    Supports JPG, PNG, PDF (Max 10MB)
+                  </motion.p>
                   
-                  <label className={`bg-brand-green hover:bg-green-600 text-white font-medium py-2.5 px-6 rounded-full cursor-pointer transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ${credits === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <motion.label
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`bg-brand-green hover:bg-green-600 text-white font-medium py-2.5 px-6 rounded-full cursor-pointer transition-all shadow-md hover:shadow-lg ${credits === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
                     Browse Files
                     <input 
                         type="file" 
@@ -376,10 +540,10 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddExpense
                         onChange={handleFileInput} 
                         disabled={credits === 0}
                     />
-                  </label>
-                </div>
+                  </motion.label>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
 
             {/* Inbox Zero Tip */}
             <div className="mt-6 pt-4 border-t border-gray-100">
@@ -400,10 +564,12 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddExpense
                 <p className="text-xs text-gray-400">Powered by Google Gemini</p>
                 <p className="text-xs font-semibold text-gray-500">Available Credits: {credits}</p>
             </div>
-          </>
+          </motion.div>
         )}
-      </div>
-    </div>
+        </AnimatePresence>
+      </motion.div>
+    </motion.div>
+    </AnimatePresence>
   );
 };
 
